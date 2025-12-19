@@ -1,30 +1,62 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import { dbConnect } from './libs/db.js';
-
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import { dbConnect } from "./libs/db.js";
+import errorHandler from "./middlewares/errorHandler.js";
 
 dotenv.config();
-const app = express();
-const PORT = process.env.PORT || 5000
-// middleware //
-app.use(express.json())
-app.use(cors(
-    {
-        origin: "http://localhost:3000" || "https://your-production-domain.com",
-        credentials: true,
-        optionSuccessStatus: 200,
-         methods: ["GET", "POST", "PUT", "DELETE"],
-    }
-))
 
-// DBCONNECT//
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Parse allowed origins from .env
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(origin => origin.trim())
+  : [];
+
+app.use(express.json());
+
+// middlware to cors policy
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow Postman, server-to-server, curl
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS: Origin not allowed"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+  })
+);
+
+// DB Connect
 dbConnect();
 
-app.get("/",(req,res)=>{
-res.send("Backend is running");
-})
+// Routes
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
 
-app.listen(PORT,()=>{
-    console.log(`server is running in ${PORT}`)
-})
+//*******************Route not Found ***************************//
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
+});
+
+
+// ********************Middlewares Error Handling**********************//
+app.use(errorHandler);
+
+// Server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
