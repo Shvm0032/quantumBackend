@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { dbConnect } from "./libs/db.js";
 import errorHandler from "./middlewares/errorHandler.js";
-
+import userRoutes from "./routes/user.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import cookieParser from "cookie-parser";
 dotenv.config();
 
 const app = express();
@@ -15,6 +17,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : [];
 
 app.use(express.json());
+
+
+// middleware for the cookieparse 
+app.use(cookieParser());
 
 // middlware to cors policy
 app.use(
@@ -43,6 +49,8 @@ dbConnect();
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 //*******************Route not Found ***************************//
 app.use((req, res, next) => {
